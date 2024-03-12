@@ -1,4 +1,5 @@
 import os
+import zmq
 from spotify import Spotify
 from track import Track
 from playlist import Playlist
@@ -14,9 +15,14 @@ songs = {1: "1BxfuPKGuaTgP7aM0Bbdwr",
          8: "79uDOz0zuuWS7HWxzMmTa2",
          9: "1HCdems7PQZRj42QDWLA0A",
          10: "3MytWN8L7shNYzGl4tAKRp"}
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://localhost:5557")
+
+artist_id = b'06HL4z0CvFAxyc27GXpf02'
 
 auth_code = "AQAKmKPIaOoOVh4dlnBDUtNOPbujfdFOxIIo2nJ_1FNaYWGqvFO6DOP6yl2fsTJQ6P7jFJOLgILApAlTsML_x89dYd1dAjmnaQpzFE5hkQzIjpv5lIQztSXJUNhnuakrvSY81Yr1Bqo5jMTTg6Jd88OnGVhcSRjC6bx_XQo6_ImLIfzWpO0nS7ZjqaGz6HJKBw"
-auth_token = "BQAZQyLk9ycPkSjrFwgqC0oOQvsQ1hlu9ONZnu_dUutD9-RmC3JiHrez_UHgrt6Ga5XWaGPHLnxuX-THZRNY-8zQl3lWRV683yebt6gt5jCKC-oFetKflOfbZ0q7v1HyBU6vulUA_W5TZIIc-SdKXglk_0QRdj5nTLE31DEAqpy3x-ovHgF2W7wtelihlOdltbDcRf5PD3WMiQ"
+auth_token = "BQBWbAN5Jnw4CxnlVQJFJ7s7gCs2jEvTI8JNznPrR1eBjwyCVpJtRL64BWGzKJX3qtmKXdO4p0Q6h4AnivUtNeFZ5es6ckdxTdZWwGVueuE-TaI3T8Esx3bDdXKx2Vgzpz44FLHXYOFyKbDq9v4v0KZhOFnPyGab9Vj5Wn4eRwThyE_zCEoXQxP5j7ZdjoBjtOvboyaArvJyb1hJhYb4zIpqF4Y"
 refresh_token = "AQA9iIWIH0GNR5aeQXx9wbsViGwu-wuui1jq2jaa5KfMZcO52mfEUBcZnGIq5YOfpi1YbaGWbSD13r5bxjBEWJ0h5La3g9RwOfjHpwPtF8oBGWnalE_IOnQIeXilStJkMcQ"
 url = "https://accounts.spotify.com/api/token"
 user_id = "1287914872"
@@ -122,27 +128,36 @@ def executePlaylistGenerator():
     print("Playlist generation will take more time for longer playlists")
     while not valid:
         print("[Enter 'OPT' to return to Main Menu]")
-        length = input("How many songs (1-10)?  ")
+        length = input("How many songs (1-30)?  ")
         if length == "OPT":
             return
         length = int(length)
-        if 10 >= length >= 1:
+        if 30 >= length >= 1:
             valid = True
             continue
         os.system('cls')
         print("Please enter a number between 1 and 10 for length")
-    confirm = input("Are you sure? [Enter YES] to confirm")
-    if confirm != "YES":
+    confirm = input("Are you sure? [Enter YES] to confirm: ")
+    if confirm.upper() != "YES":
         return
-    options = range(length)
+    track_ids = []
     tracks =[]
     for i in range(length):
-        choice = random.choice(options)
-        tracks.append(Track("",songs[choice+1],""))
+        new_track = False
+        print(f"Requesting song #{i + 1}...")
+        while not new_track:
+            socket.send(artist_id)
+            track_id = socket.recv()
+            track_id = track_id.decode("utf-8")
+            if track_id not in track_ids:
+                track_ids.append(track_id)
+                tracks.append(Track("",track_id,""))
+                print(f"Adding Track ID: {track_id} to the playlist")
+                new_track = True
     playlist = client.create_playlist()
     print(f"Playlist '{playlist.name}' was created with id = {playlist.id}")
     client.populate_playlist(playlist, tracks)
-    print(f"Playlist was successfully populated")
+    # print(f"Playlist was successfully populated")
     print(f"Access your playlist at https://open.spotify.com/playlist/{playlist.id}")
     input("Press ENTER to return to the Main Menu")
 

@@ -35,6 +35,27 @@ class Spotify:
         response = self.post_api_request(url, data)
         response_json = response.json()
         return response_json
+
+    def get_albums(self, artist_id):
+        url = f"https://api.spotify.com/v1/artists/{artist_id}/albums?include_groups=album"
+        response = self.get_api_request(url)
+        response_json = response.json()
+        return response_json
+
+    def get_tracks(self, album_id):
+        url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
+        response = self.get_api_request(url)
+        response_json = response.json()
+        return response_json
+    def get_api_request(self, url):
+        response = requests.get(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.auth_token}"
+            }
+        )
+        return response
     def post_api_request(self, url, data):
         response = requests.post(
             url,
